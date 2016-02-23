@@ -1,0 +1,354 @@
+package com.salesforce.industries.utils;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.URLEncodedUtils;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
+import org.json.simple.parser.ParseException;
+
+import com.salesforce.industries.report.WaveUploader;
+import com.sforce.soap.apex.CodeCoverageResult;
+import com.sforce.soap.apex.RunTestsRequest;
+import com.sforce.soap.apex.RunTestsResult;
+import com.sforce.soap.apex.SoapConnection;
+import com.sforce.soap.enterprise.EnterpriseConnection;
+import com.sforce.soap.partner.PartnerConnection;
+import com.sforce.ws.ConnectionException;
+import com.sforce.ws.ConnectorConfig;
+
+public class ApexCodeCoverageUtil {
+
+	private static 	String	userIdEndpoint;		//	Where to authenticate
+	private static 	String	accessToken;			//	SessionID
+	static  String	instance_url;			//	Instance URL 
+	static	int		debugLevel;
+			
+	static	String	userName;				//	Username from command Line
+	static	String	password;				//	Password from command line
+	static 	String	authEndPoint;			//	Auth Point from command line
+	
+	static	String	applicationName		=	"ApexCodeCoverageUtil";	//	Used for help and how-to
+	
+	public static	final String	classesCsvFile = "src/test/resources/apexClassesCC.csv";	//	Classes CC File we are creating
+	public static	final String	summaryCsvFile = "src/test/resources/apexTotalCC.csv";	//	Summary File we are creating
+	public static final String[] CLASSES_HEADER = {"Counter", "ApexTestClassID", "ApexClassName", "Namespace", "Type", "NumCoveredLines","NumUncoveredLines","TotalLines","PercentCovered","ID_RunDate", "Vertical"};
+	public static final String[] SUMMARY_HEADER = {"Namespace","RunID","NumClasses","User","Endpoint", "NumLinedCovered", "NumLinedNotCovered", "NumTotalLines", "PercentCovered"};
+	
+	private static	String	runDate;
+	static	PartnerConnection partnerConnection;
+	static Map<String,Integer[]> aggragates = new HashMap<String,Integer[]>();
+	private static boolean uploadToWave = false;	
+	protected final static Log logger = LogFactory.getLog(ApexCodeCoverageUtil.class) ;
+
+	
+	/**
+	 * @param args
+	 * @throws Exception 
+	 * 
+	 */
+	public static void main(String[] args) throws Exception {
+		Map<String, String> creds = SeleniumUtils.getCredentials();
+		userName = creds.get("username"); 
+		password = creds.get("password");
+		authEndPoint = "https://"+creds.get("serverhost"); 
+		uploadToWave = Boolean.valueOf(creds.get("upload_to_wave"));
+		
+		
+		// Login using Soap
+		if (!soapLogin()) {
+			logger.error("Login '" + userName + "' endpoint: '" + authEndPoint
+					+ "' failed");
+			System.exit(1);
+		}
+
+		/*
+		 * We'll create a filename which consists of the login and date so we
+		 * know which org this data belongs to and we never loose and overwrite
+		 * it.
+		 */
+		SimpleDateFormat dateFormat = new SimpleDateFormat(
+				"yyyy-MM-dd-HH-mm-ss");
+		Date date = new Date();
+		runDate = dateFormat.format(date);
+		
+		// Obtain code coverage results
+		processCodeCoverage();
+		logger.info("Created csv files: " + classesCsvFile + " and "
+				+ summaryCsvFile);
+
+		if (uploadToWave) {
+			logger.info("uploading to wave");
+			WaveUploader.append(classesCsvFile, "industries_apex_classes_cc");
+			WaveUploader.append(summaryCsvFile, "industries_apex_summary_cc");
+		}
+	}
+
+	/*
+	 * Login to Salesforce using oAuth Check this out:
+	 * http://www.mkyong.com/java/apache-httpclient-examples/
+	 * https://www.salesforce.com/us/developer/docs/api_streaming/Content/code_sample_auth_oauth.htm
+	 * 
+	 * Requires an oAuth connected application to be configured first
+	 */
+
+	public static boolean oAuthLogin(String loginHost, String username,
+			String password, String clientId, String secret) throws IOException {
+
+		// First get the oAuth Token using the parameters passed on this URL
+
+		HttpClient client = HttpClientBuilder.create().build();
+		loginHost += "/services/oauth2/token";
+		logger.debug("loginHost: " + loginHost);
+		HttpPost post = new HttpPost(loginHost);
+
+		List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
+		urlParameters.add(new BasicNameValuePair("grant_type", "password"));
+		urlParameters.add(new BasicNameValuePair("username", username));
+		urlParameters.add(new BasicNameValuePair("password", password));
+		urlParameters.add(new BasicNameValuePair("client_id", clientId));
+		urlParameters.add(new BasicNameValuePair("client_secret", secret));
+
+		boolean loginOK = true;
+
+		post.setEntity(new UrlEncodedFormEntity(urlParameters));
+
+		HttpResponse response = client.execute(post);
+		int code = response.getStatusLine().getStatusCode();
+
+		if (code != 200) { // ToDo - Need to check this
+			loginOK = false;
+			return loginOK;
+		}
+		logger.debug("OAuth login response code: " + code);
+
+		JSONObject oauthLoginResponse = null;
+
+		try {
+			oauthLoginResponse = (JSONObject) JSONValue
+					.parseWithException(EntityUtils.toString(response
+							.getEntity()));
+		} catch (org.apache.http.ParseException e) {
+			loginOK = false;
+			e.printStackTrace();
+		} catch (ParseException e) {
+			loginOK = false;
+			e.printStackTrace();
+		}
+
+		// Setup the global parameters for future use
+
+		try { // Catch any exceptions and regard them as a failure
+			userIdEndpoint = (String) oauthLoginResponse.get("id");
+			accessToken = (String) oauthLoginResponse.get("access_token");
+			instance_url = (String) oauthLoginResponse.get("instance_url");
+		} catch (Exception e) {
+			loginOK = false;
+		}
+
+		// Get the user info out - just because it's fun
+
+		List<NameValuePair> userInfoParameters = new ArrayList<NameValuePair>();
+		userInfoParameters.add(new BasicNameValuePair("oauth_token",
+				accessToken));
+
+		Charset utf8charset = Charset.forName("UTF-8");
+		String queryString = URLEncodedUtils.format(userInfoParameters,
+				utf8charset);
+
+		HttpGet userInfoRequest = new HttpGet(userIdEndpoint + "?"
+				+ queryString);
+		HttpResponse userInfoResponse = client.execute(userInfoRequest);
+		code = userInfoResponse.getStatusLine().getStatusCode();
+		logger.info("UserInfo reasonse code: " + code);
+		return loginOK;
+
+	}
+
+	/*
+	 * By using the Soap Login - we have no need to make any configuration
+	 * changes to the target Or The Bearer token uses in our REST Api accepts
+	 * both the oAuth authentication token and Soap the Soap Session ID so they
+	 * are interchangeable.
+	 * 
+	 * To get this to work you need to ensure that the a partner wsdl and wcl
+	 * jar files are linked in to this project. The function simply returns true
+	 * or false based on the login result
+	 */
+	private static boolean soapLogin() {
+
+		boolean loginOK = false;
+		try {
+			ConnectorConfig config = new ConnectorConfig();
+			config.setUsername(userName);
+			config.setPassword(password);
+			config.setAuthEndpoint(authEndPoint + "/services/Soap/u/29.0");
+			if (debugLevel > 1) {
+				config.setTraceFile("traceLogs.txt");
+				config.setTraceMessage(true);
+				config.setPrettyPrintXml(true);
+			} else {
+				config.setTraceMessage(false);
+			}
+			partnerConnection = new PartnerConnection(config);
+			loginOK = true;
+
+			accessToken = config.getSessionId();
+			String tmpString = config.getServiceEndpoint();
+			instance_url = tmpString.substring(0,
+					tmpString.indexOf("/services"));
+			logger.info("Logged into "+userName);
+		} catch (Exception ce) {
+			loginOK = false;
+			ce.printStackTrace();
+			logger.error("Error logging into "+userName);
+		} 
+		return loginOK;
+	}
+
+	/*
+	 * Get Apex code coverage Showing the code coverage per
+	 * object on an agregated level
+	 */
+
+	public static void processCodeCoverage() throws Exception {
+		 
+		PrintStream outSummary = new PrintStream(new File(summaryCsvFile), "UTF-8");
+		CSVPrinter summaryCsvPrinter = CSVFormat.DEFAULT.withHeader(SUMMARY_HEADER).print(outSummary);
+
+		PrintStream outClasses = new PrintStream(new File(classesCsvFile), "UTF-8");
+		CSVPrinter classesCsvPrinter = CSVFormat.DEFAULT.withHeader(CLASSES_HEADER).print(outClasses);
+		
+		ConnectorConfig config = new ConnectorConfig();
+		aggragates.put("TOTAL",new Integer[]{0,0,0});
+
+		//Set the endpoint for the login method (Enterprise WSDL)
+		//This also sets, under the hood, the 'ServiceEndPoint'
+		config.setAuthEndpoint(authEndPoint + "/services/Soap/c/25.0");
+		config.setUsername(userName);
+		config.setPassword(password);
+
+		//Does a login and gets you a session id into the config instance.
+		try {
+			EnterpriseConnection p = new EnterpriseConnection(config);
+			p.getClass();
+				
+			// Now switch the service endpoint to the Apex service
+			config.setServiceEndpoint(authEndPoint + "/services/Soap/s/25.0");
+			SoapConnection connector = new SoapConnection(config);
+			RunTestsRequest request = new RunTestsRequest();
+			// Pull in the list of classes from the command line.
+			String[] arg = new String[2];
+			request.setClasses(arg);
+			logger.info("Running all Apex tests (this may take a while...)");
+			RunTestsResult r = connector.runTests(request);
+			logger.info("Getting code coverage results");
+
+			for (CodeCoverageResult t : r.getCodeCoverage()) {
+				int coveredLines = t.getNumLocations();
+				int unCoveredLines = t.getNumLocationsNotCovered();
+				String namespace = t.getNamespace();
+				int classCounter = updateAggragates(namespace, coveredLines, unCoveredLines);
+				
+
+				Object[] classRecord = { classCounter, 
+						(String) t.getId(),
+						t.getName(),
+						namespace,
+						t.getType(),
+						coveredLines,
+						unCoveredLines,
+						(coveredLines + unCoveredLines),
+						percent(coveredLines, unCoveredLines),
+						runDate,
+						userName
+						};
+				
+				classesCsvPrinter.printRecord(classRecord);
+	        }
+		} catch (ConnectionException e) {
+			logger.error("Could not process code coverage due to login exception");
+			e.printStackTrace();
+		}
+		
+		for (String namespace : aggragates.keySet()){
+			Integer[] record = aggragates.get(namespace);
+			int counter = record[0];
+			int numCovered = record[1];
+			int numUncovered = record[2];
+			double percent = percent(numCovered, numUncovered);
+			
+			Object[] summaryRecord = { namespace, //TOTAL or NAMESPACE
+					runDate, 
+					counter,
+					userName,
+					authEndPoint,
+					numCovered,
+					numUncovered ,
+					numCovered + numCovered,
+					percent(numCovered, numUncovered)
+					};
+			
+			summaryCsvPrinter.printRecord(summaryRecord);
+			logger.info("Overall code coverage for " + namespace + ": " + percent);
+			}
+		}
+	
+	private static int updateAggragates(String namespace, int coveredLines, int unCoveredLines) {
+		Integer[] total = aggragates.get("TOTAL");
+		total[0]++;
+		total[1] += coveredLines;
+		total[2] += unCoveredLines;
+		
+		if (namespace == null) {
+			return total[0];
+		}
+		
+		if (aggragates.containsKey(namespace)){
+			Integer[] perNamespece = aggragates.get(namespace);
+			perNamespece[0]++;
+			perNamespece[1] += coveredLines;
+			perNamespece[2] += unCoveredLines;
+		} else {
+			aggragates.put(namespace, new Integer[]{1,coveredLines,unCoveredLines});
+		}
+			
+		
+		return total[0];
+		
+	}
+
+	/*
+	 * gets percent of covered lines
+	 * 
+	 * @returns percent. 0 if zero lines total
+	 */
+	public static double percent(int covered, int uncovered) {
+		if (uncovered + covered == 0)
+			return 0;
+		return covered * 100 / (uncovered + covered);
+	}
+	
+}

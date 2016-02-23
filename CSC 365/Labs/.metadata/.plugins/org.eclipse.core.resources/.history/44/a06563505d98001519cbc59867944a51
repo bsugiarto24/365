@@ -1,0 +1,29 @@
+import java.sql.*;
+import java.util.*;
+
+class PlayWithMySQL {
+    static Connection connect;
+    
+    public static void main(String[] args) {
+        try {
+            connect = DriverManager.getConnection("jdbc:mysql://csc223m01.csc.calpoly.edu/bsugiart?user=bsugiart&password=abc123");
+            Scanner scan = new Scanner(System.in);
+            while(true) {
+            	System.out.println("Enter a Query: ");
+            	String input = scan.nextLine();
+	            Statement statement = connect.createStatement();
+	            ResultSet rs = statement.executeQuery(input);
+	            int index = 0;
+	            while (rs.next()) {
+	            	rs.getString(index);
+	                
+	                System.out.println(print);
+	                index++;
+	            }
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+    }
+} 

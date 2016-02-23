@@ -1,0 +1,129 @@
+//create joe
+1
+Joe
+3234324224
+1717 Spooner
+30303
+
+//create card for joe
+2
+12345
+10000
+1
+Visa
+
+//get joe's data
+2id
+1
+
+//create josh
+1
+Josh
+1234234
+13 main
+30302
+
+//check ownership
+3cc
+12345
+
+//give josh ownership
+3
+12345
+2
+
+//get josh's data
+2ssn
+30302
+
+//check
+2id
+2
+
+//activate card
+5
+12345
+
+//check
+2id
+2
+//check card holders
+3cc
+12345
+
+//deactivate card
+4
+12345
+
+//check
+2id
+2
+
+//activate card
+5
+12345
+
+//create vender
+6
+Best Buy 
+123 Main
+
+//create Transaction
+7
+01/03/2015
+12345
+1
+2
+32
+
+2id
+1
+
+//create payment
+8
+01/03/2015
+12345
+40000
+
+2id
+1
+
+4t
+01/02/2015
+01/04/2015
+12345
+
+//create Transaction
+7
+01/03/2018
+12345
+1
+2
+344
+
+
+4t
+01/02/2015
+01/04/2015
+12345
+
+4t
+01/02/2015
+01/04/2022
+12345
+
+
+//deactivate card
+4
+12345
+
+//create Transaction
+7
+01/03/2018
+12345
+1
+2
+344
+
+
+

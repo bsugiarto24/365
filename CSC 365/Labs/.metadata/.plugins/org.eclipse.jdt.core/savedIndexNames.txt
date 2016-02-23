@@ -1,0 +1,14 @@
+INDEX VERSION 1.127+/Users/bsugiarto/Desktop/CSC 365/Labs/.metadata/.plugins/org.eclipse.jdt.core
+2326659272.index
+950430100.index
+3954040986.index
+770573466.index
+3601336504.index
+3000285004.index
+450555687.index
+3004609673.index
+765977872.index
+4249315662.index
+84777399.index
+272178059.index
+3631448202.index

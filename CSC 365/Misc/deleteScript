@@ -1,0 +1,6 @@
+delete from Payment;
+delete from Transaction;
+delete from Vender;
+delete from ownership;
+delete from CreditCard;
+delete from Customer;

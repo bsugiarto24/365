@@ -1,0 +1,42 @@
+SQL SCRIPTS
+
+// auto increment primary key
+create table Students (	 
+   sid INTEGER AUTO_INCREMENT PRIMARY KEY, 					
+   name VARCHAR(30), 					
+   login VARCHAR(20), 					
+   age INTEGER, 					
+   gpa REAL);
+
+
+
+
+CREATE TABLE Students 
+      	(sid INTEGER not null,  
+        name  CHAR(20),
+        login CHAR(10), age INTEGER,
+        gpa REAL, PRIMARY KEY  (sid) )
+
+
+
+//foreign key
+CREATE TABLE Enrolled 
+   	(sid integer not null,
+    cid CHAR(20) not null,
+    grade CHAR(2), 
+     PRIMARY KEY  (sid,cid), 
+     FOREIGN KEY (sid) REFERENCES Students(sid) ) 
+
+
+
+INSERT 
+INTO Students (sid, name, login, age, gpa) 
+VALUES (233, 'Smith', 'sad@abc.com', 18, 4.0)
+
+DELETE
+FROM Students 
+WHERE name='Smith'	
+
+UPDATE Students 
+SET GPA = GPA -1
+WHERE sid=233

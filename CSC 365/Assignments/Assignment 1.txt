@@ -1,0 +1,99 @@
+
+             
+CREATE TABLE Team (Id integer AUTO_INCREMENT PRIMARY KEY, Name VARCHAR(30));
+
+CREATE TABLE Game (Id integer AUTO_INCREMENT PRIMARY KEY,TeamId1 integer, TeamId2 integer, Team1Goals integer,Team2Goals integer, FOREIGN KEY (TeamId1) REFERENCES Team(Id), FOREIGN KEY (TeamId2) REFERENCES Team(Id));
+
+CREATE TABLE SoccerPlayer (Name VARCHAR(30) PRIMARY KEY, TeamId integer, FOREIGN KEY (TeamId) REFERENCES Team(Id));
+
+
+CREATE TABLE Participate ( Name VARCHAR(30), GameId integer,Goals integer Default 0, PRIMARY KEY(GameId, Name),FOREIGN KEY (GameId) REFERENCES Game(Id), FOREIGN KEY (Name) REFERENCES SoccerPlayer(Name));
+
+
+
+CREATE TABLE Team (	Id integer AUTO_INCREMENT PRIMARY KEY, 
+					Name VARCHAR(30));
+
+CREATE TABLE Game (	Id integer AUTO_INCREMENT PRIMARY KEY,
+					TeamId1 integer, 
+					TeamId2 integer, 
+					Team1Goals integer,
+					Team2Goals integer, 
+					FOREIGN KEY (TeamId1) REFERENCES Team(Id), 
+					FOREIGN KEY (TeamId2) REFERENCES Team(Id));
+
+CREATE TABLE SoccerPlayer (	Name VARCHAR(30) PRIMARY KEY, 
+							TeamId integer, 
+							FOREIGN KEY (TeamId) REFERENCES Team(Id));
+
+
+CREATE TABLE Participate ( 	Name VARCHAR(30), 
+							GameId integer,
+							Goals integer Default 0, 
+							PRIMARY KEY(GameId, Name),
+							FOREIGN KEY (GameId) REFERENCES Game(Id), 
+							FOREIGN KEY (Name) REFERENCES SoccerPlayer(Name));
+
+
+
+
+INSERT 
+INTO Team (Id, name) 
+VALUES 	  (1, 'Cal Poly'), 
+VALUES 	  (2, 'FC Barcelona');
+
+
+INSERT 
+INTO Game (Id, TeamId1, TeamId2, Team1Goals, Team2Goals) 
+VALUES 	  (1, 1, 2, 4, 3);
+
+
+INSERT 
+INTO SoccerPlayer (Name, TeamId) 
+VALUES 	  ('Bryan', 1),
+VALUES 	  ('Nick', 2),
+VALUES 	  ('Zach', 3);
+
+
+INSERT 
+INTO Participate (Name, GameId, Goals) 
+VALUES 	  ('Bryan', 1, 4),
+VALUES 	  ('Zach, 1, 2);
+
+
+
+1. select name from participate where goals>=3
+2. select team.name from team, participate, soccerplayer where participate.goals >= 3 AND participate.name = soccerplayer.name AND soccerplayer.TeamId = Team.Id
+
+3. select name from team, game where (game.team1goals > 3 AND game.TeamId1 = team.Id) OR (game.team2goals > 3 AND game.TeamId2 = team.Id)
+
+4. select loser.name from team as cp, team as loser, game where 
+(game.team1goals > game.team2goals AND 
+game.TeamId2 = loser.Id AND 
+cp.name = "Cal Poly" AND
+cp.Id  = game.TeamId1) 
+OR 
+(game.team1goals < game.team2goals AND 
+game.TeamId1 = loser.Id AND 
+cp.name = "Cal Poly" AND
+cp.Id  = game.TeamId2); 
+
+
+select loser.name from team as cp, team as loser, game where 
+(game.team1goals > game.team2goals AND 
+game.TeamId2 = loser.Id AND 
+cp.name = "Real Madrid" AND
+cp.Id  = game.TeamId1) 
+OR 
+(game.team1goals < game.team2goals AND 
+game.TeamId1 = loser.Id AND 
+cp.name = "Real Madrid" AND
+cp.Id  = game.TeamId2); 
+
+
+
+
+
+
+
+

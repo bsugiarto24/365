@@ -1,0 +1,137 @@
+CPE365-Lab2
+
+
+
+CREATE TABLE Customer (	Id integer AUTO_INCREMENT PRIMARY KEY, 
+						SSN VARCHAR(30) UNIQUE,
+						Name VARCHAR(30),
+						Address VARCHAR(30),
+						Phone VARCHAR(30)
+						);
+
+CREATE TABLE Customer (	Id integer AUTO_INCREMENT PRIMARY KEY, SSN VARCHAR(30),Name VARCHAR(30),Address VARCHAR(30),Phone VARCHAR(30));
+
+
+INSERT 
+INTO Customer (Id, SSN, Name, Address, Phone) 
+VALUES (233, '545645', 'Bob', '123 Main', '43535344'),
+
+
+
+INSERT 
+INTO Customer (Id, SSN, Name, Address, Phone) 
+VALUES (234, '545245', 'Joe', '123 Java', '43535552');
+
+-------------------------
+
+CREATE TABLE CreditCard (	Number VARCHAR(30) NOT NULL PRIMARY KEY, 
+							Type VARCHAR(30) NOT NULL,
+							cclimit INTEGER NOT NULL,
+							isActive BOOLEAN Default False,
+							Balance INTEGER
+						);
+
+CREATE TABLE CreditCard (Number VARCHAR(30) NOT NULL PRIMARY KEY, Type VARCHAR(30) NOT NULL, cclimit INTEGER, isActive BOOLEAN Default false,Balance INTEGER);
+
+
+INSERT
+INTO CreditCard (Number, Type, cclimit, isActive, Balance)
+VALUES('4353453', 'AMEX', 2345334, true, 0);
+
+INSERT
+INTO CreditCard (Number, Type, cclimit, Balance)
+VALUES('12345', 'AMEX', 2345334, 0);
+
+
+--------------------------
+
+CREATE TABLE Ownership (	CustomerId INTEGER NOT NULL, 
+							CCNum VARCHAR(30) NOT NULL,
+							isActive BOOLEAN,
+							PRIMARY KEY(CustomerId, CCNum),
+							FOREIGN KEY (CustomerId) REFERENCES Customer(Id), 
+							FOREIGN KEY (CCNum) REFERENCES CreditCard(Number)
+						);
+
+CREATE TABLE Ownership (CustomerId INTEGER NOT NULL, CCNum VARCHAR(30) NOT NULL,isActive BOOLEAN,PRIMARY KEY(CustomerId, CCNum), FOREIGN KEY (CustomerId) REFERENCES Customer(Id), FOREIGN KEY (CCNum) REFERENCES CreditCard(Number));
+
+INSERT 
+INTO Ownership (CustomerId, CCNum, isActive) 
+VALUES (233, '12345', true);
+
+INSERT 
+INTO Ownership (CustomerId, CCNum, isActive) 
+VALUES (234, '12345', true);
+
+INSERT 
+INTO Ownership (CustomerId, CCNum, isActive) 
+VALUES (234, '4353453', true);
+
+
+INSERT 
+INTO Ownership (CustomerId, CCNum, isActive) 
+VALUES (23499, '8722656968', true);
+
+
+---------------------------
+
+CREATE TABLE Vender	(		Id integer AUTO_INCREMENT NOT NULL PRIMARY KEY,
+							Name VARCHAR(30) NOT NULL,
+							Location VARCHAR(30) NOT NULL
+					);
+
+CREATE TABLE Vender	(Id integer AUTO_INCREMENT NOT NULL PRIMARY KEY,Name VARCHAR(30) NOT NULL,Location VARCHAR(30) NOT NULL);
+
+INSERT 
+INTO Vender (Id, Name, Location) 
+VALUES (1, 'Best Buy', '123 Main');
+
+INSERT 
+INTO Vender (Id, Name, Location) 
+VALUES (2, 'Bestest Buy', '324 Mian');
+
+
+
+----------------------------
+CREATE TABLE Transaction (	Id integer AUTO_INCREMENT NOT NULL PRIMARY KEY,
+							Date DATE,
+							vid INTEGER,
+							cid INTEGER,
+							CCNum VARCHAR(30),
+							amount INTEGER,
+							FOREIGN KEY (cid) REFERENCES Customer(Id), 
+							FOREIGN KEY (CCNum) REFERENCES CreditCard(Number),
+							FOREIGN KEY (vid) REFERENCES Vender(Id)
+						);
+
+CREATE TABLE Transaction (	Id integer AUTO_INCREMENT NOT NULL PRIMARY KEY,Date DATE,vid INTEGER,cid INTEGER,CCNum VARCHAR(30),amount INTEGER,FOREIGN KEY (cid) REFERENCES Customer(Id), FOREIGN KEY (CCNum) REFERENCES CreditCard(Number),FOREIGN KEY (vid) REFERENCES Vender(Id));
+
+
+INSERT 
+INTO Transaction (Id, Date, vid, cid, CCNum, amount) 
+VALUES (1, 9/4/15, 1, 233, '12345', 1234);
+
+INSERT 
+INTO Transaction (Id, Date, vid, cid, CCNum, amount) 
+VALUES (2, 9/2/15, 2, 233, '12345', 600);
+
+---------------------------
+CREATE TABLE Payment	 (	Id integer AUTO_INCREMENT NOT NULL PRIMARY KEY,
+							Date DATE,
+							CCNum VARCHAR(30),
+							amount INTEGER,
+							FOREIGN KEY (CCNum) REFERENCES CreditCard(Number),
+						);
+
+CREATE TABLE Payment	 (	Id integer AUTO_INCREMENT NOT NULL PRIMARY KEY,Date DATE,CCNum VARCHAR(30),amount INTEGER,FOREIGN KEY (CCNum) REFERENCES CreditCard(Number));
+
+
+
+INSERT 
+INTO Payment (Id, Date, CCNum, amount) 
+VALUES (2, 9/2/15, '12345', 600);
+
+
+
+
+
